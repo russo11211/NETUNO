@@ -1,0 +1,158 @@
+Core Application Vision – App Netuno
+Goal:
+Build a next-generation web application for the Solana DeFi ecosystem, empowering users with deep, actionable insights into their Liquidity Provider (LP) positions and providing advanced automation for yield optimization and risk management. App Netuno will be the unified dashboard for managing, analyzing, and automating LP activity across all major Solana AMMs.
+1. Solana Wallet Integration & Data Aggregation
+Enhancements & Notes:
+Wallet Adapter:
+Use the Solana Wallet Adapter ecosystem for seamless integration with Phantom, Solflare, Backpack, Ledger, and more.
+Consider supporting WalletConnect v2 for future-proofing and mobile compatibility.
+Manual Address Input:
+Allow users to “watch” any public wallet, not just their own, for research and analytics.
+Multi-Wallet Management:
+Enable users to label, group, and switch between multiple wallets.
+Consider a “portfolio” view aggregating all connected/watched wallets.
+Permission Granularity:
+Use Solana’s transaction simulation to preview actions before requesting signatures.
+Clearly display requested permissions and never request more than needed.
+Token & LP Position Discovery:
+SPL Token Scanning:
+Use getParsedTokenAccountsByOwner for efficient SPL token discovery.
+LP Token Identification:
+Maintain an up-to-date registry of major AMM program IDs and LP mint addresses.
+Consider using SolanaFM or Birdeye APIs for protocol metadata.
+Active vs. Closed Positions:
+Parse transaction history for add_liquidity and remove_liquidity instructions.
+For CLMMs, track NFT-based position accounts and their lifecycle.
+CLMM Support:
+For protocols like Orca Whirlpools and Raydium V3, parse position NFTs, price ranges, and liquidity data.
+Consider supporting Metaplex Token Metadata for NFT-based LP positions.
+Data Fetching:
+RPC Node Selection:
+Allow users to select preferred RPC providers or use a load-balanced pool for reliability.
+Monitor and display RPC health/status.
+Token & Price Data:
+Integrate with Pyth Network, Switchboard, and Birdeye for real-time and historical price feeds.
+Cache price data for performance and rate limit compliance.
+LP Pool Metrics:
+Calculate TVL, user share, and fee accrual in both SOL and USD.
+Support toggling between native and USD values throughout the UI.
+Impermanent Loss (IL):
+Provide educational tooltips explaining IL and its calculation.
+For CLMMs, visualize the impact of price range selection on IL.
+Historical Data:
+Closed Position Tracking:
+Store snapshots of LP positions at open/close, including all relevant metrics.
+Allow users to export historical data for tax/reporting purposes.
+2. Advanced LP Pool Management Dashboard
+Enhancements & Notes:
+Dashboard Customization:
+Support drag-and-drop widgets, dark/light mode, and persistent user settings.
+Filtering & Sorting:
+Enable multi-criteria filtering (protocol, token, status, health, date).
+Allow users to save custom filter presets.
+Aggregate Metrics:
+Show portfolio-level analytics: total TVL, total fees, net IL, and overall PnL.
+Visual Indicators:
+Use color-coded badges, mini-charts, and health scores for quick risk assessment.
+Detailed Pool View:
+For each LP, display all real-time and historical metrics, with links to on-chain explorers.
+Integrate protocol-specific actions (add/remove liquidity, claim fees, adjust range) with wallet confirmation flows.
+Interactive Charts:
+Use TradingView Lightweight Charts or Recharts for performance and flexibility.
+Overlay user liquidity ranges on price charts for CLMMs.
+Visualize fee accrual, IL evolution, and transaction history.
+3. Intelligent LP Pool Automation Engine
+Enhancements & Notes:
+Strategy Creation:
+Provide templates for common strategies (e.g., auto-compound, range rebalancing, stop-loss).
+Allow users to clone and customize strategies.
+Automation Triggers:
+Support a wide range of triggers: price, time, fee thresholds, IL, PnL, and custom logic.
+Allow users to combine multiple triggers with AND/OR logic.
+Execution Engine:
+Off-chain monitoring for efficiency; on-chain execution for security.
+Use Solana’s Compute Budget Program for priority fees.
+Ensure all transactions are signed client-side or via secure, non-custodial services (never store private keys).
+Backtesting & Simulation:
+Provide a sandbox mode for users to test strategies on historical data.
+Visualize simulated actions and outcomes on charts.
+Allow users to compare multiple strategies side-by-side.
+4. Exceptional User Experience & Interface
+Enhancements & Notes:
+UI/UX:
+Prioritize speed, clarity, and accessibility.
+Use tooltips, modals, and onboarding flows to educate users about DeFi concepts and risks.
+Notifications:
+In-app, email, push, and messaging platform (Discord, Telegram) integration.
+Allow users to customize notification preferences and thresholds.
+Security & Transparency:
+Prominently display risk disclaimers and security best practices.
+Provide links to protocol audits and documentation.
+Analytics & Reporting:
+Generate downloadable reports (CSV, PDF) for positions and performance.
+Support custom date ranges and metric selection for reports.
+5. Technical Architecture (Solana-Focused)
+Frontend:
+Framework:
+Recommend Next.js (React) for SSR/SEO or Nuxt.js (Vue) for flexibility.
+UI Library:
+Chakra UI, Mantine, or Tailwind CSS with Headless UI.
+Solana Web3:
+@solana/web3.js for blockchain interaction.
+@solana/wallet-adapter for wallet integration.
+Charting:
+TradingView Lightweight Charts, Recharts, or Chart.js.
+Backend & Automation:
+Language/Framework:
+Rust (Actix-web/Axum) or Go (Gin/Fiber) for performance; Node.js (NestJS/Express) for rapid prototyping and JS ecosystem compatibility.
+Solana SDKs:
+Use language-appropriate Solana SDKs for transaction building and signing.
+Data Aggregation:
+Combine direct RPC queries with third-party APIs (Birdeye, Helius, QuickNode, SolanaFM).
+Consider building a custom indexer for historical and complex queries.
+Oracles:
+Integrate with Pyth, Switchboard, and other reliable price feeds.
+Job Scheduling:
+Use Celery (Python), BullMQ (Node.js), or native Go routines for automation tasks.
+Database:
+PostgreSQL for relational data; MongoDB for flexible, document-based storage.
+Redis for caching and real-time data.
+Security:
+Never store user private keys.
+Use secure, audited libraries for all cryptographic operations.
+Implement rate limiting and monitoring for all APIs.
+Deployment & Infrastructure:
+Cloud:
+AWS, GCP, or Azure for scalability.
+Containerization:
+Docker for consistent environments.
+Orchestration:
+Kubernetes for scaling microservices.
+CI/CD:
+GitHub Actions, GitLab CI/CD, or CircleCI for automated workflows.
+Monitoring:
+Prometheus/Grafana for metrics; Sentry for error tracking.
+6. Additional Recommendations
+Open Source & Community:
+Consider open-sourcing core components to build trust and attract contributors.
+Engage with the Solana and DeFi communities for feedback and early adoption.
+Compliance:
+Monitor evolving DeFi regulations and ensure clear disclaimers and compliance where necessary.
+Accessibility:
+Ensure the UI is accessible (WCAG 2.1 compliance) for all users.
+Localization:
+Plan for multi-language support to reach a global audience.
+Summary Table: Key Modules & Responsibilities
+| Module | Responsibilities |
+|-------------------------------|--------------------------------------------------------------------------------------------------|
+| Wallet Integration | Connect, manage, and authenticate Solana wallets; manual address input; permission management |
+| Data Aggregation | Fetch SPL/LP tokens, pool data, prices, historical data from on-chain and third-party APIs |
+| LP Position Analysis | Calculate TVL, fees, IL, PnL, reinvested value, and historical metrics |
+| Dashboard & Visualization | Interactive, customizable UI; filtering, sorting, aggregate metrics, charts, and pool details |
+| Automation Engine | Strategy creation, trigger monitoring, transaction building, execution, and backtesting |
+| Notification System | In-app, email, push, and messaging platform notifications; user preferences |
+| Security & Compliance | Risk disclaimers, secure key management, audit integration, rate limiting |
+| Backend Services | Data aggregation, automation logic, job scheduling, database management, API endpoints |
+| DevOps & Monitoring | CI/CD, containerization, orchestration, monitoring, and error tracking |
+
+npx task-master parse-prd scripts/prd.txt                           

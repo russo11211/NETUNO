@@ -1,0 +1,79 @@
+# Overview
+App Netuno é uma plataforma web para usuários DeFi no ecossistema Solana, oferecendo uma visão unificada e detalhada de posições de Liquidity Provider (LP) em diferentes AMMs. O MVP permite que qualquer usuário conecte sua carteira Solana, visualize suas posições LP ativas, métricas essenciais e histórico básico, com uma interface amigável e segura.
+
+# Core Features
+1. **Solana Wallet Integration**
+   - Permite ao usuário conectar sua carteira Solana (Phantom, Solflare, Backpack) ou inserir manualmente um endereço público.
+   - Integração com Solana Wallet Adapter; opção de input manual de endereço.
+
+2. **LP Position Discovery & Display**
+   - Identifica e exibe todas as posições LP ativas do usuário nos principais AMMs (Raydium, Orca, Saber).
+   - Consulta tokens SPL e LP tokens via Solana RPC; exibe nome do pool, tokens envolvidos, valor atual (em SOL/USD), e status (ativo/fechado).
+
+3. **Essential LP Metrics**
+   - Mostra métricas essenciais de cada posição: valor atual, participação no pool, taxas coletadas, e valor de retirada estimado.
+   - Calcula TVL, share do usuário, fees acumuladas e valor de retirada usando APIs de preço (Birdeye, CoinGecko) e dados on-chain.
+
+4. **Historical Position Tracking (Básico)**
+   - Exibe um histórico simples de posições fechadas (data de abertura/fechamento, valor inicial/final, fees totais).
+   - Armazena snapshots ao detectar remoção de liquidez; exibe lista de posições fechadas.
+
+5. **User Dashboard (UI/UX)**
+   - Fornece um painel centralizado com visão geral das posições, métricas agregadas e navegação intuitiva.
+   - Interface React/Next.js com Chakra UI ou Tailwind; widgets para posições, métricas totais, e histórico.
+
+# User Experience
+- **Personas:** Usuário DeFi intermediário/avançado, investidor curioso, analista de LP.
+- **Fluxos principais:**  
+  1. Conectar carteira → Visualizar posições LP → Explorar métricas → Ver histórico.
+  2. Inserir endereço manual → Visualizar dados públicos.
+- **UI/UX Considerações:**  
+  - Onboarding simples e seguro.
+  - Feedback visual claro para loading, erros e estados vazios.
+  - Alternância entre valores em SOL/USD.
+
+# Technical Architecture
+- **Frontend:** React/Next.js, Chakra UI ou Tailwind, @solana/web3.js, @solana/wallet-adapter.
+- **Backend:** Node.js/Express (ou serverless functions) para agregação de dados, integração com RPCs e APIs de preço.
+- **Banco de Dados:** MongoDB ou PostgreSQL para armazenar histórico de posições fechadas.
+- **APIs/Integrações:** Solana RPC, Birdeye/CoinGecko para preços, AMM APIs para metadados de pools.
+- **Infraestrutura:** Deploy inicial em Vercel/Netlify (frontend) e Railway/Render (backend).
+
+# Development Roadmap
+## Fase 1: MVP
+- Wallet connect e input manual.
+- Descoberta e exibição de posições LP ativas.
+- Cálculo e exibição de métricas essenciais (TVL, fees, valor de retirada).
+- Histórico básico de posições fechadas.
+- Dashboard centralizado e responsivo.
+
+## Fase 2: Pós-MVP (não incluir no MVP)
+- Suporte a múltiplas carteiras.
+- Métricas avançadas (impermanent loss, APR, etc).
+- Automação e notificações.
+- Backtesting e simulação.
+
+# Logical Dependency Chain
+1. **Wallet Integration** (base para todo o resto)
+2. **LP Token Discovery** (depende da carteira/endereço)
+3. **Métricas Essenciais** (depende da descoberta de tokens)
+4. **Dashboard UI** (depende dos dados anteriores)
+5. **Histórico de Posições** (depende de tracking de eventos de liquidez)
+
+# Risks and Mitigations
+- **Desafios técnicos:**  
+  - Parsing de diferentes AMMs → Começar com 2-3 principais (Raydium, Orca).
+  - Latência de RPC → Usar provedores confiáveis e cache local.
+- **MVP Scope:**  
+  - Foco em funcionalidades essenciais, evitar automação/analytics avançados no MVP.
+- **Recursos:**  
+  - Priorizar features que entregam valor rápido e são base para expansão.
+
+# Appendix
+- **Referências técnicas:**  
+  - [Solana Wallet Adapter](https://github.com/solana-labs/wallet-adapter)
+  - [Birdeye API](https://birdeye.so/)
+  - [Raydium Docs](https://docs.raydium.io/)
+  - [Orca Docs](https://docs.orca.so/)
+- **Especificações:**  
+  - Listagem de AMMs suportados no MVP: Raydium, Orca, Saber. 
