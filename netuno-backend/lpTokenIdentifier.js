@@ -15,7 +15,53 @@ const { meteoraCache } = require('./meteoraPositionCache');
  * @returns {Promise<Array<{mint: string, protocol: string}>>}
  */
 async function identifyLpTokens(userTokenAccounts, userAddress, connection) {
-  console.log('🔍 Fetching Meteora DLMM positions with robust fallback system...');
+  console.log('🔍 Starting multi-protocol LP token identification...');
+  const allLpPositions = [];
+
+  // 1. RAYDIUM LP Token Detection
+  console.log('🟡 Checking Raydium LP tokens...');
+  try {
+    const raydiumLpMints = await fetchRaydiumLpMints();
+    const raydiumSet = new Set(raydiumLpMints);
+    
+    const raydiumPositions = userTokenAccounts
+      .filter(account => raydiumSet.has(account.mint))
+      .map(account => ({
+        mint: account.mint,
+        protocol: 'Raydium',
+        amount: account.amount,
+        decimals: account.decimals
+      }));
+    
+    console.log(`📊 Found ${raydiumPositions.length} Raydium LP positions`);
+    allLpPositions.push(...raydiumPositions);
+  } catch (error) {
+    console.error('❌ Error fetching Raydium LP tokens:', error.message);
+  }
+
+  // 2. ORCA LP Token Detection
+  console.log('🔵 Checking Orca LP tokens...');
+  try {
+    const orcaLpMints = await fetchOrcaLpMints();
+    const orcaSet = new Set(orcaLpMints);
+    
+    const orcaPositions = userTokenAccounts
+      .filter(account => orcaSet.has(account.mint))
+      .map(account => ({
+        mint: account.mint,
+        protocol: 'Orca',
+        amount: account.amount,
+        decimals: account.decimals
+      }));
+    
+    console.log(`📊 Found ${orcaPositions.length} Orca LP positions`);
+    allLpPositions.push(...orcaPositions);
+  } catch (error) {
+    console.error('❌ Error fetching Orca LP tokens:', error.message);
+  }
+
+  // 3. METEORA DLMM Position Detection (existing logic)
+  console.log('🟣 Fetching Meteora DLMM positions with robust fallback system...');
   
   // Função para tentar SDK com RPC robusto
   const trySDK = async () => {
@@ -63,13 +109,16 @@ async function identifyLpTokens(userTokenAccounts, userAddress, connection) {
     }, 'Meteora DLMM Position Fetch');
   };
 
-  // Usar cache com fallback inteligente
+  // Usar cache com fallback inteligente para Meteora
   try {
-    return await meteoraCache.getPositions(userAddress, trySDK);
+    const meteoraPositions = await meteoraCache.getPositions(userAddress, trySDK);
+    allLpPositions.push(...meteoraPositions);
   } catch (error) {
-    console.error('❌ Erro no sistema de cache/fallback:', error.message);
-    return [];
+    console.error('❌ Erro no sistema de cache/fallback Meteora:', error.message);
   }
+
+  console.log(`🎯 Total LP positions found across all protocols: ${allLpPositions.length}`);
+  return allLpPositions;
 }
 
 /**
@@ -79,14 +128,37 @@ async function identifyLpTokens(userTokenAccounts, userAddress, connection) {
  * @returns {Promise<Object|null>} Dados do pool ou null se não encontrado
  */
 async function getLpPoolDataByMint(mint, protocol) {
-  if (protocol === 'Meteora') {
-    console.log(`Fetching pool data for Meteora mint: ${mint}`);
-    const pools = await fetchMeteoraPools();
-    const pool = pools.find(pool => pool.lp_mint === mint) || null;
-    console.log(`Found pool data:`, pool ? 'Yes' : 'No');
-    return pool;
+  console.log(`🔍 Fetching pool data for ${protocol} mint: ${mint}`);
+  
+  try {
+    if (protocol === 'Raydium') {
+      const pools = await fetchRaydiumPools();
+      const pool = pools.find(pool => pool.lpMint === mint);
+      console.log(`Found Raydium pool data:`, pool ? 'Yes' : 'No');
+      return pool || null;
+    }
+    
+    if (protocol === 'Orca') {
+      const pools = await fetchOrcaPools();
+      const pool = pools.find(pool => pool.lpMint === mint);
+      console.log(`Found Orca pool data:`, pool ? 'Yes' : 'No');
+      return pool || null;
+    }
+    
+    if (protocol === 'Meteora') {
+      const pools = await fetchMeteoraPools();
+      const pool = pools.find(pool => pool.lp_mint === mint);
+      console.log(`Found Meteora pool data:`, pool ? 'Yes' : 'No');
+      return pool || null;
+    }
+    
+    console.warn(`❌ Unknown protocol: ${protocol}`);
+    return null;
+    
+  } catch (error) {
+    console.error(`❌ Error fetching ${protocol} pool data:`, error.message);
+    return null;
   }
-  return null;
 }
 
 module.exports = { identifyLpTokens, getLpPoolDataByMint }; 
