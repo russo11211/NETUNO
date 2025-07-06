@@ -10,6 +10,7 @@ const { identifyLpTokens, getLpPoolDataByMint } = require('./lpTokenIdentifier')
 const { rpcManager } = require('./rpcManager');
 const { meteoraCache } = require('./meteoraPositionCache');
 const { monitoring, requestTracker } = require('./monitoring');
+const { getTokenInfo, getMultipleTokenInfo } = require('./tokenRegistry');
 const fs = require('fs').promises;
 const path = require('path');
 const Database = require('better-sqlite3');
@@ -325,7 +326,20 @@ app.get('/lp-positions', strictLimiter, async (req, res) => {
     }));
     // Identifica tokens LP (passa o endereço do usuário e conexão para Meteora)
     const lpTokens = await identifyLpTokens(accounts, address, connection);
-    // Para cada token LP, busca dados do pool
+    // Coletar todos os token mints únicos para buscar informações
+    const allTokenMints = new Set();
+    lpTokens.forEach(({ positionData }) => {
+      if (positionData) {
+        allTokenMints.add(positionData.mintX);
+        allTokenMints.add(positionData.mintY);
+      }
+    });
+
+    // Buscar informações de todos os tokens em batch usando o sistema cascata
+    console.log(`🔍 Fetching token info for ${allTokenMints.size} unique tokens using cascading APIs`);
+    const tokenInfoMap = await getMultipleTokenInfo(Array.from(allTokenMints));
+
+    // Para cada token LP, busca dados do pool e enriquece com nomes dos tokens
     const lpPositions = await Promise.all(lpTokens.map(async ({ mint, protocol, positionData }) => {
       const pool = await getLpPoolDataByMint(mint, protocol);
       const userAccount = accounts.find(acc => acc.mint === mint);
@@ -336,13 +350,25 @@ app.get('/lp-positions', strictLimiter, async (req, res) => {
         const totalYAmount = parseFloat(positionData.totalYAmount || '0');
         const totalLiquidity = totalXAmount + totalYAmount;
         
+        // Buscar informações dos tokens
+        const tokenX = tokenInfoMap.get(positionData.mintX) || { 
+          symbol: positionData.mintX.slice(0, 6), 
+          name: `Token ${positionData.mintX.slice(0, 8)}`,
+          decimals: 9 
+        };
+        const tokenY = tokenInfoMap.get(positionData.mintY) || { 
+          symbol: positionData.mintY.slice(0, 6), 
+          name: `Token ${positionData.mintY.slice(0, 8)}`,
+          decimals: 9 
+        };
+
         return {
           mint,
           protocol,
           amount: totalLiquidity.toFixed(6),
           decimals: 9,
           pool: {
-            name: positionData.poolName || 'Meteora DLMM Pool',
+            name: `${tokenX.symbol}/${tokenY.symbol} DLMM`,
             address: positionData.poolAddress,
             lp_mint: positionData.positionAddress,
             token_a_mint: positionData.mintX,
@@ -360,18 +386,44 @@ app.get('/lp-positions', strictLimiter, async (req, res) => {
             upper_bin_id: positionData.upperBinId
           },
           positionData,
+          tokenInfo: {
+            tokenX: {
+              ...tokenX,
+              mint: positionData.mintX
+            },
+            tokenY: {
+              ...tokenY,
+              mint: positionData.mintY
+            }
+          },
           valueUSD: positionData.valueUSD || null
         };
       }
       
-      // Para outros protocolos (Raydium, Orca)
-      return {
+      // Para outros protocolos (Raydium, Orca) - implementar lookup se necessário
+      const position = {
         mint,
         protocol,
         amount: userAccount ? userAccount.amount : null,
         decimals: userAccount ? userAccount.decimals : null,
         pool,
       };
+
+      // Se o pool tem token mints, buscar nomes também
+      if (pool && pool.baseMint && pool.quoteMint) {
+        const tokenA = tokenInfoMap.get(pool.baseMint) || await getTokenInfo(pool.baseMint);
+        const tokenB = tokenInfoMap.get(pool.quoteMint) || await getTokenInfo(pool.quoteMint);
+        
+        if (tokenA && tokenB) {
+          position.pool.name = `${tokenA.symbol}/${tokenB.symbol} Pool`;
+          position.tokenInfo = {
+            tokenX: { ...tokenA, mint: pool.baseMint },
+            tokenY: { ...tokenB, mint: pool.quoteMint }
+          };
+        }
+      }
+
+      return position;
     }));
 
     // --- Detecção automática de fechamento de posição ---
