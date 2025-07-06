@@ -61,7 +61,8 @@ const Dashboard: React.FC<DashboardProps> = ({ address }) => {
     setError(null);
     
     // Fetch from backend API
-    fetch(`http://localhost:4000/lp-positions?address=${address}`)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    fetch(`${apiUrl}/lp-positions?address=${address}`)
       .then(response => {
         if (!response.ok) {
           throw new Error('Erro ao buscar posições');
