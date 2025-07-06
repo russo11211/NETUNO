@@ -40,6 +40,7 @@ class MonitoringSystem {
   requestTracker() {
     return (req, res, next) => {
       const startTime = Date.now();
+      const monitoring = this;
       
       // Intercept response
       const originalSend = res.send;
@@ -48,13 +49,13 @@ class MonitoringSystem {
         const responseTime = endTime - startTime;
         
         // Atualizar métricas
-        this.updateRequestMetrics(res.statusCode, responseTime);
+        monitoring.updateRequestMetrics(res.statusCode, responseTime);
         
         // Log estruturado
-        this.logRequest(req, res, responseTime);
+        monitoring.logRequest(req, res, responseTime);
         
-        return originalSend.call(this, data);
-      }.bind(this);
+        return originalSend.call(res, data);
+      };
       
       next();
     };

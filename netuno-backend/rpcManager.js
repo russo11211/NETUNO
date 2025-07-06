@@ -6,15 +6,18 @@ const { Connection } = require('@solana/web3.js');
  */
 class RpcManager {
   constructor() {
-    // Lista de RPCs em ordem de prioridade
+    // Lista de RPCs em ordem de prioridade - Helius como principal
     this.rpcEndpoints = [
-      // RPCs gratuitos com boa disponibilidade
+      // 1. Helius RPC (premium, suporta todas as calls incluindo DLMM)
+      process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=43f8597b-7300-4273-beb2-93e0e6bd1c8b',
+      
+      // 2. RPCs alternativos com boa compatibilidade
+      'https://rpc.ankr.com/solana',
+      'https://solana-mainnet.rpc.extrnode.com', 
       'https://api.mainnet-beta.solana.com',
       'https://solana-api.projectserum.com',
-      'https://rpc.ankr.com/solana',
-      'https://solana-mainnet.rpc.extrnode.com',
       'https://mainnet.solana.com',
-      // Adicionar mais RPCs conforme necessário
+      'https://solana.public-rpc.com',
     ];
 
     // Estado de cada RPC

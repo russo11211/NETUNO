@@ -17,7 +17,11 @@
       "mcp__context7__get-library-docs",
       "WebFetch(domain:docs.meteora.ag)",
       "Bash(timeout 30 curl \"http://localhost:4000/lp-positions?address=JAp5oM9Vjt1jzSe3kU73MhNni5ShFtxqwD372URyW5gV\")",
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "WebFetch(domain:docs.lpagent.io)",
+      "WebFetch(domain:docs.shyft.to)",
+      "WebFetch(domain:github.com)",
+      "Bash(timeout:*)"
     ],
     "deny": []
   }

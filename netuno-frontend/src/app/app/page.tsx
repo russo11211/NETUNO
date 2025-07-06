@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
-// Simple component imports
-import DashboardTab from './components/DashboardTab';
+// Ocean-themed component imports
+import OceanDashboard from '../components/OceanDashboard';
+import Dashboard from '../components/Dashboard';
 import ManageLPTab from './components/ManageLPTab';
 
 function AppContent() {
@@ -36,13 +37,17 @@ function AppContent() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f7fafc' }}>
-      {/* Header */}
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(180deg, #0a1628 0%, #1e3a8a 50%, #0f172a 100%)'
+    }}>
+      {/* Ocean Header */}
       <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e2e8f0',
+        background: 'rgba(15, 23, 42, 0.9)',
+        borderBottom: '1px solid rgba(79, 209, 197, 0.3)',
         padding: '1rem 0',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(10px)'
       }}>
         <div style={{
           maxWidth: '1200px',
@@ -53,15 +58,18 @@ function AppContent() {
           alignItems: 'center'
         }}>
           <div style={{
-            fontSize: '1.5rem',
+            fontSize: '1.8rem',
             fontWeight: 'bold',
-            color: '#3182ce'
+            background: 'linear-gradient(135deg, #4fd1c7 0%, #40e0ff 100%)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
           }}>
-            🌊 App Netuno
+            🌊 NETUNO
           </div>
           <div style={{
             fontSize: '0.875rem',
-            color: '#718096',
+            color: '#94a3b8',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem'
@@ -69,10 +77,12 @@ function AppContent() {
             <span>🔗</span>
             <span>Carteira:</span>
             <code style={{ 
-              backgroundColor: '#f1f5f9', 
+              backgroundColor: 'rgba(79, 209, 197, 0.1)', 
+              color: '#4fd1c7',
               padding: '0.25rem 0.5rem', 
-              borderRadius: '4px',
-              fontSize: '0.75rem'
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              border: '1px solid rgba(79, 209, 197, 0.3)'
             }}>
               {walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}` : 'Não conectada'}
             </code>
@@ -80,10 +90,12 @@ function AppContent() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs - Hidden for Ocean Dashboard */}
+      {activeTab !== 'dashboard' && (
       <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e2e8f0'
+        background: 'rgba(15, 23, 42, 0.8)',
+        borderBottom: '1px solid rgba(79, 209, 197, 0.3)',
+        backdropFilter: 'blur(10px)'
       }}>
         <div style={{
           maxWidth: '1200px',
@@ -131,8 +143,13 @@ function AppContent() {
           </button>
         </div>
       </div>
+      )}
 
       {/* Content */}
+      {activeTab === 'dashboard' ? (
+        // Full-width Ocean Dashboard
+        <OceanDashboard address={walletAddress} />
+      ) : (
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
@@ -171,11 +188,11 @@ function AppContent() {
           </div>
         ) : (
           <>
-            {activeTab === 'dashboard' && <DashboardTab address={walletAddress} />}
             {activeTab === 'manage' && <ManageLPTab address={walletAddress} />}
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

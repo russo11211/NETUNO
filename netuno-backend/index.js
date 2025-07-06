@@ -16,7 +16,9 @@ const Database = require('better-sqlite3');
 
 const app = express();
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://netuno-frontend.vercel.app', 'https://netuno.vercel.app']
+    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   credentials: true
 }));
 app.use(express.json());
@@ -224,7 +226,10 @@ app.get('/token-accounts', async (req, res) => {
     return res.status(400).json({ error: 'Missing address query parameter.' });
   }
   try {
-    const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'));
+    const connection = new Connection(
+      process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=43f8597b-7300-4273-beb2-93e0e6bd1c8b',
+      { commitment: 'confirmed' }
+    );
     const publicKey = new PublicKey(address);
     const response = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') });
     const accounts = response.value.map(({ pubkey, account }) => ({
@@ -304,7 +309,10 @@ app.get('/lp-positions', strictLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Missing address query parameter.' });
   }
   try {
-    const connection = new Connection(process.env.SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'));
+    const connection = new Connection(
+      process.env.SOLANA_RPC_URL || 'https://mainnet.helius-rpc.com/?api-key=43f8597b-7300-4273-beb2-93e0e6bd1c8b',
+      { commitment: 'confirmed' }
+    );
     const publicKey = new PublicKey(address);
     const response = await connection.getParsedTokenAccountsByOwner(publicKey, { programId: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA') });
     const accounts = response.value.map(({ pubkey, account }) => ({
@@ -437,7 +445,19 @@ app.get('/lp-history', async (req, res) => {
   }
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    env: process.env.NODE_ENV || 'development'
+  });
+});
+
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔒 CORS origins: ${process.env.NODE_ENV === 'production' ? 'Production domains' : 'Development domains'}`);
 }); 

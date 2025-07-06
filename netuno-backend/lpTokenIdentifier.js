@@ -111,7 +111,7 @@ async function identifyLpTokens(userTokenAccounts, userAddress, connection) {
 
   // Usar cache com fallback inteligente para Meteora
   try {
-    const meteoraPositions = await meteoraCache.getPositions(userAddress, trySDK);
+    const meteoraPositions = await meteoraCache.getPositions(userAddress, trySDK, userTokenAccounts);
     allLpPositions.push(...meteoraPositions);
   } catch (error) {
     console.error('❌ Erro no sistema de cache/fallback Meteora:', error.message);

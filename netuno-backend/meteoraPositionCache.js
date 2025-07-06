@@ -137,19 +137,20 @@ class MeteoraPositionCache {
   /**
    * Buscar posições com fallback inteligente
    */
-  async getPositions(walletAddress, sdkFunction = null) {
+  async getPositions(walletAddress, sdkFunction = null, userTokenAccounts = []) {
     const cacheKey = walletAddress;
     
-    console.log(`🔍 Buscando posições para carteira: ${walletAddress}`);
+    console.log(`🔍 Buscando posições DLMM para carteira: ${walletAddress}`);
+    console.log(`📋 Nota: Meteora DLMM usa contas de programa, não LP tokens tradicionais`);
     
     // Tentar SDK primeiro se fornecido
     if (sdkFunction) {
       try {
-        console.log('📡 Tentando buscar via SDK...');
+        console.log('📡 Tentando buscar via SDK Meteora...');
         const positions = await sdkFunction();
         
         if (positions && positions.length > 0) {
-          console.log(`✅ SDK retornou ${positions.length} posições`);
+          console.log(`✅ SDK retornou ${positions.length} posições DLMM`);
           // Atualizar cache
           this.cache[cacheKey] = {
             positions,
@@ -158,6 +159,8 @@ class MeteoraPositionCache {
           };
           this.saveCache();
           return positions;
+        } else {
+          console.log(`📭 SDK não encontrou posições DLMM para esta carteira`);
         }
       } catch (error) {
         console.log(`❌ SDK falhou: ${error.message}`);
@@ -178,29 +181,7 @@ class MeteoraPositionCache {
       }
     }
 
-    // Usar dados conhecidos como fallback
-    if (this.knownPositions[walletAddress]) {
-      console.log(`🎯 Usando dados conhecidos para carteira ${walletAddress}`);
-      const knownData = this.knownPositions[walletAddress];
-      
-      // Atualizar timestamp
-      const updatedPositions = knownData.map(pos => ({
-        ...pos,
-        lastUpdated: new Date().toISOString()
-      }));
-      
-      // Salvar no cache
-      this.cache[cacheKey] = {
-        positions: updatedPositions,
-        timestamp: new Date().toISOString(),
-        source: 'KnownData'
-      };
-      this.saveCache();
-      
-      return updatedPositions;
-    }
-
-    console.log(`❌ Nenhuma posição encontrada para ${walletAddress}`);
+    console.log(`❌ Nenhuma posição DLMM encontrada para ${walletAddress}`);
     return [];
   }
 

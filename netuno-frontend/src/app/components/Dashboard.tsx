@@ -1,8 +1,18 @@
 'use client';
 import React, { useEffect, useState } from 'react';
+import SimplePositionCard from './SimplePositionCard';
 
 interface DashboardProps {
   address: string;
+}
+
+interface TokenInfo {
+  symbol: string;
+  name: string;
+  decimals: number;
+  mint: string;
+  userAmount: number;
+  reserveAmount: number;
 }
 
 interface Position {
@@ -12,8 +22,16 @@ interface Position {
   pool?: {
     name?: string;
     pool_name?: string;
+    bin_step?: number;
   };
-  valueUSD?: number;
+  tokenInfo?: {
+    tokenX: TokenInfo;
+    tokenY: TokenInfo;
+  };
+  valueUSD?: number | null;
+  tokenXValueUSD?: number | null;
+  tokenYValueUSD?: number | null;
+  lastPriceUpdate?: string;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ address }) => {
@@ -64,14 +82,27 @@ const Dashboard: React.FC<DashboardProps> = ({ address }) => {
             protocol: 'Raydium',
             amount: '1000.5',
             pool: { name: 'SOL/USDC' },
-            valueUSD: 25000
-          },
-          {
-            mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-            protocol: 'Orca',
-            amount: '500.25',
-            pool: { name: 'USDC/USDT' },
-            valueUSD: 12500
+            valueUSD: 25000,
+            tokenInfo: {
+              tokenX: {
+                symbol: 'SOL',
+                name: 'Solana',
+                decimals: 9,
+                mint: 'So11111111111111111111111111111111111111112',
+                userAmount: 500000000,
+                reserveAmount: 1000000000
+              },
+              tokenY: {
+                symbol: 'USDC',
+                name: 'USD Coin',
+                decimals: 6,
+                mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                userAmount: 12500000,
+                reserveAmount: 25000000
+              }
+            },
+            tokenXValueUSD: 12500,
+            tokenYValueUSD: 12500
           }
         ]);
         setError(null);
@@ -120,14 +151,6 @@ const Dashboard: React.FC<DashboardProps> = ({ address }) => {
     border: '1px solid #e2e8f0'
   };
 
-  const positionCardStyle: React.CSSProperties = {
-    padding: '1rem',
-    margin: '1rem 0',
-    backgroundColor: 'white',
-    border: '1px solid #e2e8f0',
-    borderRadius: '8px',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-  };
 
   return (
     <div style={containerStyle}>
@@ -217,48 +240,15 @@ const Dashboard: React.FC<DashboardProps> = ({ address }) => {
         {!loading && !error && (
           <>
             {positions.length > 0 ? (
-              positions.map((position, idx) => (
-                <div key={`${position.mint}-${idx}`} style={positionCardStyle}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#2d3748', margin: '0 0 0.5rem 0' }}>
-                        {position.pool?.name || position.pool?.pool_name || 'Pool Desconhecido'}
-                      </h3>
-                      <div style={{ marginBottom: '0.5rem' }}>
-                        <span style={{
-                          fontSize: '0.75rem',
-                          color: 'white',
-                          backgroundColor: '#805ad5',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '12px'
-                        }}>
-                          {position.protocol}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.875rem', color: '#718096', margin: 0 }}>
-                        Mint: {position.mint.slice(0, 8)}...{position.mint.slice(-8)}
-                      </p>
-                    </div>
-                    
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontSize: '1.125rem', fontWeight: 'bold', color: '#2d3748', margin: '0 0 0.25rem 0' }}>
-                        {position.amount} LP
-                      </p>
-                      {position.valueUSD && (
-                        <p style={{ fontSize: '1rem', color: '#38a169', fontWeight: '500', margin: 0 }}>
-                          {(() => {
-                            const value = position.valueUSD || 0;
-                            const safeValue = typeof value === 'number' ? value : 0;
-                            return showUSD 
-                              ? safeValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-                              : `${safeToFixed(safeValue / 100, 4)} SOL`;
-                          })()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {positions.map((position, idx) => (
+                  <SimplePositionCard
+                    key={`${position.mint}-${idx}`}
+                    position={position}
+                    showUSD={showUSD}
+                  />
+                ))}
+              </div>
             ) : (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 <p style={{ color: '#718096', fontSize: '1.125rem', margin: '0 0 0.5rem 0' }}>

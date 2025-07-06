@@ -123,27 +123,54 @@ function calculateDynamicRange(positionData, poolData) {
  */
 async function fetchMeteoraUserPositions(userAddress, connection) {
   try {
-    console.log(`Fetching Meteora positions for: ${userAddress}`);
+    console.log(`🟣 Fetching Meteora DLMM positions for: ${userAddress}`);
     const startTime = Date.now();
     
-    // Try robust method first (avoids API rate limits)
-    const { findMeteoraPositionsRobust } = require('./robust_meteora');
-    let positions = await findMeteoraPositionsRobust(userAddress, connection);
+    // Import Meteora SDK
+    const DLMM = require('@meteora-ag/dlmm');
+    const { PublicKey } = require('@solana/web3.js');
     
-    // If robust method finds positions, use them
-    if (positions && positions.length > 0) {
-      const endTime = Date.now();
-      console.log(`Robust method completed in ${endTime - startTime}ms - Found ${positions.length} positions`);
-      return positions;
+    // Use oficial Meteora SDK to detect DLMM positions
+    const userWallet = new PublicKey(userAddress);
+    console.log(`📡 Using Meteora SDK to fetch positions...`);
+    
+    const positionsMap = await DLMM.default.getAllLbPairPositionsByUser(connection, userWallet);
+    console.log(`🔍 SDK returned ${positionsMap.size} position(s)`);
+    
+    const positions = [];
+    
+    // Convert Map to array of positions
+    for (const [positionKey, positionData] of positionsMap) {
+      console.log(`📋 Processing DLMM position: ${positionKey}`);
+      
+      const tokenXMint = positionData.tokenX.publicKey.toString();
+      const tokenYMint = positionData.tokenY.publicKey.toString();
+      const tokenXAmount = positionData.tokenX.amount.toString();
+      const tokenYAmount = positionData.tokenY.amount.toString();
+      
+      const lpPosition = {
+        mint: positionKey,
+        protocol: 'Meteora',
+        positionData: {
+          poolName: `${tokenXMint.slice(0, 6)}/SOL DLMM`,
+          poolAddress: positionData.lbPair.toString?.() || positionKey,
+          positionAddress: positionKey,
+          mintX: tokenXMint,
+          mintY: tokenYMint,
+          totalXAmount: tokenXAmount,
+          totalYAmount: tokenYAmount,
+          activeId: positionData.lbPair.activeId,
+          binStep: positionData.lbPair.binStep,
+          pairType: positionData.lbPair.pairType,
+          valueUSD: null
+        }
+      };
+      
+      positions.push(lpPosition);
     }
     
-    // Fallback to efficient method if robust finds nothing
-    console.log('Robust method found no positions, trying efficient method...');
-    const { fetchMeteoraUserPositionsEfficient } = require('./efficient_meteora');
-    positions = await fetchMeteoraUserPositionsEfficient(userAddress, connection);
-    
     const endTime = Date.now();
-    console.log(`Completed in ${endTime - startTime}ms - Found ${positions.length} positions`);
+    console.log(`✅ Meteora SDK completed in ${endTime - startTime}ms - Found ${positions.length} DLMM positions`);
     
     return positions;
     
