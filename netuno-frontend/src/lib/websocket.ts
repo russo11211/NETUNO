@@ -3,15 +3,16 @@
 import { io, Socket } from 'socket.io-client';
 import { portfolioCache } from './redis-cache';
 
-// 🌐 WebSocket Configuration  
-const WS_URLS = [
-  // Only try secure WebSocket for production (Vercel)
-  typeof window !== 'undefined' && window.location.protocol === 'https:' ? 
-    'wss://netuno-backend.onrender.com' : null,
-  // Local development fallbacks
+// 🌐 WebSocket Configuration (production vs development)
+const WS_URLS = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? [
+  // Production only
+  'wss://netuno-backend.onrender.com',
+] : [
+  // Development only
+  'wss://netuno-backend.onrender.com',
   'ws://127.0.0.1:4000',
   'ws://localhost:4000',
-].filter(Boolean) as string[];
+] as string[];
 
 interface PositionUpdate {
   address: string;

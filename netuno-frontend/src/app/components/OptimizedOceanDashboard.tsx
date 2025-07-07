@@ -5,6 +5,7 @@ import { usePortfolio } from '../../hooks/usePortfolio';
 import { SkeletonCard, SkeletonMetrics } from '../../components/SkeletonCard';
 import OptimizedPositionCard from './OptimizedPositionCard';
 import { useWebSocket } from '../../lib/websocket';
+import { BackendWarmup } from '../../lib/backend-warmup';
 
 interface DashboardProps {
   address: string;
@@ -29,6 +30,12 @@ const OptimizedOceanDashboard: React.FC<DashboardProps> = ({ address }) => {
     lastUpdated,
     isStale,
   } = usePortfolio(address);
+
+  // 🔥 Backend Warmup Effect
+  useEffect(() => {
+    // Warm up backend immediately when component mounts
+    BackendWarmup.smartWarmup();
+  }, []);
 
   // 🌐 WebSocket Effects
   useEffect(() => {

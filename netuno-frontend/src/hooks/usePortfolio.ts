@@ -52,16 +52,19 @@ export const portfolioKeys = {
   positions: (address: string) => [...portfolioKeys.address(address), 'positions'] as const,
 } as const;
 
-// 🌐 API URLs with fallback strategy
-const API_URLS = [
+// 🌐 API URLs with fallback strategy (production only for Vercel)
+const API_URLS = typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? [
+  // Production URLs only
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://netuno-backend.onrender.com',
+  'https://netuno-backend.onrender.com',
+] : [
+  // Development URLs
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://netuno-backend.onrender.com',
   'https://netuno-backend.onrender.com',
   'http://127.0.0.1:4000',
   'http://localhost:4000',
   'http://127.0.0.1:3001',
   'http://localhost:3001',
-  'http://127.0.0.1:8080',
-  'http://localhost:8080',
 ] as const;
 
 // 🔄 Optimized fetch function with Redis cache + fallback strategy + Performance monitoring
@@ -123,8 +126,8 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
               },
               cache: 'no-cache',
               mode: 'cors',
-              // Add timeout for faster fallback
-              signal: AbortSignal.timeout(5000), // Reduced to 5s for even faster fallback
+              // Increased timeout for cold starts (Render hibernation)
+              signal: AbortSignal.timeout(30000), // 30s timeout for initial load
             });
 
             console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
