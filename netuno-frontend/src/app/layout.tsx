@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Provider";
 import WalletUIStyles from "./wallet-ui-styles";
+import { ReactQueryProvider } from "../lib/react-query";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,10 +28,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className={geistSans.className}>
-        <Providers>
-          <WalletUIStyles />
-          {children}
-        </Providers>
+        <ReactQueryProvider>
+          <Providers>
+            <WalletUIStyles />
+            {children}
+          </Providers>
+        </ReactQueryProvider>
       </body>
     </html>
   );

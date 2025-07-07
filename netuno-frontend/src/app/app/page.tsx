@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Ocean-themed component imports
-import OceanDashboard from '../components/OceanDashboard';
+import OptimizedOceanDashboard from '../components/OptimizedOceanDashboard';
 import Dashboard from '../components/Dashboard';
 import ManageLPTab from './components/ManageLPTab';
 
@@ -147,8 +147,8 @@ function AppContent() {
 
       {/* Content */}
       {activeTab === 'dashboard' ? (
-        // Full-width Ocean Dashboard
-        <OceanDashboard address={walletAddress} />
+        // Full-width Optimized Ocean Dashboard with React Query
+        <OptimizedOceanDashboard address={walletAddress} />
       ) : (
       <div style={{
         maxWidth: '1200px',
