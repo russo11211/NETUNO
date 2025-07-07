@@ -107,8 +107,17 @@ const OceanDashboard: React.FC<DashboardProps> = ({ address }) => {
           }
           
           const data = await response.json();
-          console.log('LP Positions from backend:', data);
-          setPositions(data.lpPositions || []);
+          console.log('🔍 FULL Backend Response:', data);
+          console.log('🎯 LP Positions Array:', data.lpPositions);
+          console.log('📊 Array Length:', data.lpPositions ? data.lpPositions.length : 'undefined');
+          
+          if (data.lpPositions && Array.isArray(data.lpPositions) && data.lpPositions.length > 0) {
+            console.log('✅ Setting positions:', data.lpPositions.length, 'positions found');
+            setPositions(data.lpPositions);
+          } else {
+            console.log('❌ No positions found or invalid format');
+            setPositions([]);
+          }
           setLoading(false);
           return; // Success, exit function
           
@@ -119,6 +128,7 @@ const OceanDashboard: React.FC<DashboardProps> = ({ address }) => {
       }
       
       // If all URLs fail
+      console.log('❌ ALL URLS FAILED - No backend connection established');
       setError('Não foi possível conectar ao backend. Verifique se o servidor está rodando na porta 4000.');
       setLoading(false);
     };
