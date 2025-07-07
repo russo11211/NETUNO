@@ -189,22 +189,22 @@ export default function DashboardTabClean({ address }: DashboardTabProps) {
 
 // All styles in one place with !important to override Chakra UI
 const mainContainerStyle: React.CSSProperties = {
-  fontFamily: 'Arial, sans-serif !important' as any,
-  backgroundColor: '#ffffff !important' as any,
-  color: '#000000 !important' as any,
-  padding: '20px !important' as any,
-  minHeight: '100vh !important' as any,
-  lineHeight: '1.4 !important' as any,
+  fontFamily: 'Arial, sans-serif',
+  backgroundColor: '#ffffff',
+  color: '#000000',
+  padding: '20px',
+  minHeight: '100vh',
+  lineHeight: '1.4',
 };
 
 const loadingContainerStyle: React.CSSProperties = {
-  display: 'flex !important' as any,
-  flexDirection: 'column !important' as any,
-  alignItems: 'center !important' as any,
-  justifyContent: 'center !important' as any,
-  padding: '60px 20px !important' as any,
-  backgroundColor: '#ffffff !important' as any,
-  color: '#000000 !important' as any,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '60px 20px',
+  backgroundColor: '#ffffff',
+  color: '#000000',
 };
 
 const spinnerStyle: React.CSSProperties = {

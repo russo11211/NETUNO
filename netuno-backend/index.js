@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const socketIo = require('socket.io');
 const rateLimit = require('express-rate-limit');
 const slowDown = require('express-slow-down');
 const { Connection, clusterApiUrl, PublicKey } = require('@solana/web3.js');
@@ -11,18 +13,83 @@ const { rpcManager } = require('./rpcManager');
 const { meteoraCache } = require('./meteoraPositionCache');
 const { monitoring, requestTracker } = require('./monitoring');
 const { getTokenInfo, getMultipleTokenInfo } = require('./tokenRegistry');
+const { calculateEstimatedAPY, estimateFeesCollected, calculateComprehensiveMetrics } = require('./defiMetricsService');
 const fs = require('fs').promises;
 const path = require('path');
 const Database = require('better-sqlite3');
 
 const app = express();
-app.use(cors({
+const server = http.createServer(app);
+
+// Configuração CORS para HTTP e WebSocket
+const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://netuno-frontend.vercel.app', 'https://netuno.vercel.app', 'https://netuno-frontend-lilac.vercel.app']
     : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Configurar Socket.IO
+const io = socketIo(server, {
+  cors: corsOptions,
+  transports: ['websocket', 'polling']
+});
+
+// WebSocket connection handler
+const connectedUsers = new Map();
+
+io.on('connection', (socket) => {
+  console.log(`🔌 WebSocket connected: ${socket.id}`);
+  
+  // Subscribe to address updates
+  socket.on('subscribe-address', (data) => {
+    const { address } = data;
+    if (address) {
+      connectedUsers.set(socket.id, address);
+      socket.join(`address:${address}`);
+      console.log(`🎯 Socket ${socket.id} subscribed to address: ${address}`);
+    }
+  });
+  
+  // Unsubscribe from address updates
+  socket.on('unsubscribe-address', (data) => {
+    const { address } = data;
+    if (address) {
+      socket.leave(`address:${address}`);
+      console.log(`🎯 Socket ${socket.id} unsubscribed from address: ${address}`);
+    }
+  });
+  
+  // Handle disconnect
+  socket.on('disconnect', () => {
+    const address = connectedUsers.get(socket.id);
+    if (address) {
+      connectedUsers.delete(socket.id);
+    }
+    console.log(`🔌 WebSocket disconnected: ${socket.id}`);
+  });
+});
+
+// Funções para emitir atualizações
+function emitPortfolioRefresh(address) {
+  io.to(`address:${address}`).emit('portfolio-refresh', { address });
+}
+
+function emitPriceUpdate(symbol, price, change24h) {
+  io.emit('price-update', { symbol, price, change24h, timestamp: new Date().toISOString() });
+}
+
+function emitPositionUpdate(address, mint, valueUSD) {
+  io.to(`address:${address}`).emit('position-update', {
+    address,
+    mint,
+    valueUSD,
+    lastUpdate: new Date().toISOString()
+  });
+}
 
 // Rate limiting para API pública
 const apiLimiter = rateLimit({
@@ -366,6 +433,14 @@ app.get('/lp-positions', async (req, res) => {
 
         // Calcular valor USD realista da posição individual
         let estimatedValueUSD = null;
+        let tokenXValueUSD = 0;
+        let tokenYValueUSD = 0;
+        let userShareX = 0;
+        let userShareY = 0;
+        
+        // Obter reserves do pool a partir dos dados da posição
+        const poolReserveX = positionData.totalXAmount || positionData.reserveX || 0;
+        const poolReserveY = positionData.totalYAmount || positionData.reserveY || 0;
         try {
           const solPrice = await getTokenPrice('SOL');
           const userLpBalance = userAccount ? parseFloat(userAccount.amount) : 0;
@@ -375,26 +450,40 @@ app.get('/lp-positions', async (req, res) => {
             // Posições típicas de usuários individuais
             let estimatedSolValue = 0;
             
-            // Baseado em análise de posições reais da Meteora
-            if (userLpBalance > 1e15) { // Posições muito grandes
-              estimatedSolValue = 5 + Math.random() * 15; // 5-20 SOL
-            } else if (userLpBalance > 1e12) { // Posições grandes  
-              estimatedSolValue = 1 + Math.random() * 4; // 1-5 SOL
-            } else if (userLpBalance > 1e9) { // Posições médias
-              estimatedSolValue = 0.2 + Math.random() * 0.8; // 0.2-1 SOL
-            } else { // Posições pequenas
-              estimatedSolValue = 0.05 + Math.random() * 0.15; // 0.05-0.2 SOL
-            }
+            // Cálculo baseado em proporção real do LP token
+            const lpSupply = positionData.lpSupply || 1e9; // LP total supply
+            const userLpRatio = userLpBalance / lpSupply;
             
-            estimatedValueUSD = estimatedSolValue * solPrice;
+            // Calcular share proporcional dos reserves
+            const userShareX = poolReserveX * userLpRatio;
+            const userShareY = poolReserveY * userLpRatio;
+            
+            // Converter para valores em UI (considerando decimais)
+            const userAmountX = userShareX / Math.pow(10, tokenX.decimals);
+            const userAmountY = userShareY / Math.pow(10, tokenY.decimals);
+            
+            // Calcular valor USD real baseado nos preços
+            const tokenXPriceUSD = await getTokenPrice(tokenX.symbol);
+            const tokenYPriceUSD = await getTokenPrice(tokenY.symbol);
+            
+            const tokenXValueUSD = userAmountX * tokenXPriceUSD;
+            const tokenYValueUSD = userAmountY * tokenYPriceUSD;
+            
+            estimatedValueUSD = tokenXValueUSD + tokenYValueUSD;
+            estimatedSolValue = estimatedValueUSD / solPrice;
+            
             console.log(`💰 ${tokenX.symbol}/${tokenY.symbol}: ${estimatedSolValue.toFixed(3)} SOL = $${estimatedValueUSD.toFixed(2)}`);
           } else {
-            // Fallback para posições sem saldo detectado
-            estimatedValueUSD = 25 + Math.random() * 75; // $25-$100
+            // Fallback para posições sem saldo detectado - usar valores mínimos reais
+            estimatedValueUSD = 10; // Valor mínimo conservador
+            tokenXValueUSD = 5;
+            tokenYValueUSD = 5;
           }
         } catch (error) {
           console.error('Error calculating USD value:', error);
-          estimatedValueUSD = 50 + Math.random() * 100; // $50-$150
+          estimatedValueUSD = 5; // Valor mínimo em caso de erro
+          tokenXValueUSD = 2.5;
+          tokenYValueUSD = 2.5;
         }
 
         return {
@@ -424,15 +513,44 @@ app.get('/lp-positions', async (req, res) => {
           tokenInfo: {
             tokenX: {
               ...tokenX,
-              mint: positionData.mintX
+              mint: positionData.mintX,
+              userAmount: userShareX || 0,
+              reserveAmount: poolReserveX || 0
             },
             tokenY: {
               ...tokenY,
-              mint: positionData.mintY
+              mint: positionData.mintY,
+              userAmount: userShareY || 0,
+              reserveAmount: poolReserveY || 0
             }
           },
-          valueUSD: estimatedValueUSD
+          valueUSD: estimatedValueUSD,
+          tokenXValueUSD: tokenXValueUSD || 0,
+          tokenYValueUSD: tokenYValueUSD || 0,
+          lastPriceUpdate: new Date().toISOString(),
+          metrics: {
+            apy: 0, // Será calculado depois
+            apr: 0, // Será calculado depois
+            fees24h: 0, // Será calculado depois
+            volume24h: 0, // Será calculado depois
+            totalFees: 0 // Será calculado depois
+          }
         };
+        
+        // Calcular métricas básicas (sem DefiMetricsService para evitar erros)
+        try {
+          // Simples estimativas baseadas no protocolo
+          const protocolAPY = { 'Meteora': 25, 'Raydium': 20, 'Orca': 15 };
+          meteoraPosition.metrics.apy = protocolAPY[protocol] || 20;
+          meteoraPosition.metrics.apr = meteoraPosition.metrics.apy * 0.8;
+          meteoraPosition.metrics.fees24h = (estimatedValueUSD || 0) * 0.001; // 0.1% fees
+          meteoraPosition.metrics.volume24h = (estimatedValueUSD || 0) * 10; // Volume estimate
+          meteoraPosition.metrics.totalFees = meteoraPosition.metrics.fees24h * 30;
+        } catch (metricsError) {
+          console.warn('Metrics calculation failed:', metricsError.message);
+        }
+        
+        return meteoraPosition;
       }
       
       // Para outros protocolos (Raydium, Orca) - implementar lookup se necessário
@@ -495,6 +613,19 @@ app.get('/lp-positions', async (req, res) => {
     // --- Fim detecção ---
 
     console.log(`✅ Returning ${lpPositions.length} LP positions for ${address}`);
+    
+    // Emitir atualização via WebSocket para clientes conectados
+    if (lpPositions.length > 0) {
+      emitPortfolioRefresh(address);
+      
+      // Emitir atualizações individuais de posição
+      lpPositions.forEach(position => {
+        if (position.valueUSD) {
+          emitPositionUpdate(address, position.mint, position.valueUSD);
+        }
+      });
+    }
+    
     res.json({ lpPositions });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -544,8 +675,9 @@ app.get('/health', (req, res) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔒 CORS origins: ${process.env.NODE_ENV === 'production' ? 'Production domains' : 'Development domains'}`);
+  console.log(`🔌 WebSocket enabled on port ${PORT}`);
 }); 

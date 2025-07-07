@@ -127,7 +127,7 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
               cache: 'no-cache',
               mode: 'cors',
               // Increased timeout for cold starts (Render hibernation)
-              signal: AbortSignal.timeout(30000), // 30s timeout for initial load
+              signal: AbortSignal.timeout(45000), // 45s timeout for initial load (mais tempo)
             });
 
             console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
@@ -148,6 +148,17 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
 
             console.log(`✅ API Success: Found ${data.lpPositions.length} positions`);
             PerformanceMonitor.recordMetric('api-success', 1);
+            
+            // 💾 Cache local no navegador como backup
+            try {
+              localStorage.setItem(`portfolio_backup_${address}`, JSON.stringify({
+                data,
+                timestamp: Date.now()
+              }));
+            } catch (e) {
+              console.warn('Failed to save local backup:', e);
+            }
+            
             return data;
           }
         );
@@ -162,10 +173,29 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
       }
     }
 
-    // If all APIs failed, return empty data instead of throwing
+    // If all APIs failed, try local backup before returning empty
     if (!freshData) {
-      console.warn('All API endpoints failed, returning empty portfolio');
+      console.warn('All API endpoints failed, trying local backup...');
       PerformanceMonitor.recordMetric('api-total-failure', 1);
+      
+      // Tentar cache local como último recurso
+      try {
+        const backupKey = `portfolio_backup_${address}`;
+        const backup = localStorage.getItem(backupKey);
+        if (backup) {
+          const backupData = JSON.parse(backup);
+          const backupAge = Date.now() - backupData.timestamp;
+          
+          // Usar backup se for menor que 24 horas
+          if (backupAge < 24 * 60 * 60 * 1000) {
+            console.log('💾 Using local backup data');
+            PerformanceMonitor.recordMetric('backup-cache-hit', 1);
+            return backupData.data;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to load local backup:', e);
+      }
       
       // Return empty portfolio to avoid breaking the UI
       return {
@@ -211,13 +241,13 @@ export function usePortfolio(address: string | null) {
     enabled: Boolean(address), // Only fetch when address is provided
     
     // 🔥 PERFORMANCE SETTINGS
-    staleTime: 2 * 60 * 1000, // Consider data fresh for 2 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes (mais agressivo)
+    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes (mais tempo)
     
     // 🔄 Refetch strategy
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 30 * 1000, // Auto-refetch every 30 seconds
+    refetchInterval: 60 * 1000, // Auto-refetch every 60 seconds (menos frequente)
     refetchIntervalInBackground: false,
     
     // 🎯 Error handling

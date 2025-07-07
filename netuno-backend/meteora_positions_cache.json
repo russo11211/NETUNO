@@ -10,9 +10,9 @@
           "positionAddress": "kzkCheB5MJ3R6BQGjcyF6YunWW4CPcqBPkpnVkmfCYe",
           "mintX": "1zJX5gRnjLgmTpq5sVwkq69mNDQkCemqoasyjaPW6jm",
           "mintY": "So11111111111111111111111111111111111111112",
-          "totalXAmount": "4451624500813107",
-          "totalYAmount": "675642407946",
-          "activeId": -947,
+          "totalXAmount": "5312359034697779",
+          "totalYAmount": "856488311037",
+          "activeId": -967,
           "binStep": 100,
           "pairType": 3,
           "valueUSD": null
@@ -27,9 +27,9 @@
           "positionAddress": "FTUUwFN25knhihreUS9hjmBS2zZMJHdTZVAiCKedhjw9",
           "mintX": "DtR4D9FtVoTX2569gaL837ZgrB6wNjj6tkmnX9Rdk9B2",
           "mintY": "So11111111111111111111111111111111111111112",
-          "totalXAmount": "393971080826",
-          "totalYAmount": "1874878594483",
-          "activeId": -6,
+          "totalXAmount": "646765435948",
+          "totalYAmount": "719169804762",
+          "activeId": -13,
           "binStep": 100,
           "pairType": 0,
           "valueUSD": null
@@ -44,16 +44,16 @@
           "positionAddress": "CpaQjgRZuVJ9yv4ewnZXuFhoy2VUwr4pStbTSHvHtK4w",
           "mintX": "71Jvq4Epe2FCJ7JFSF7jLXdNk1Wy4Bhqd9iL6bEFELvg",
           "mintY": "So11111111111111111111111111111111111111112",
-          "totalXAmount": "17882608993197",
-          "totalYAmount": "5525632379145",
-          "activeId": -193,
+          "totalXAmount": "24702483123036",
+          "totalYAmount": "3638646253624",
+          "activeId": -219,
           "binStep": 100,
           "pairType": 3,
           "valueUSD": null
         }
       }
     ],
-    "timestamp": "2025-07-04T18:28:22.966Z",
+    "timestamp": "2025-07-07T20:16:18.235Z",
     "source": "SDK"
   }
 }
