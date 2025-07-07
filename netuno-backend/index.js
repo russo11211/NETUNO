@@ -428,7 +428,7 @@ app.get('/lp-positions', async (req, res) => {
               mint: positionData.mintY
             }
           },
-          valueUSD: estimatedValueUSD || (100 + Math.random() * 400) // Fallback: $100-$500
+          valueUSD: 123.45 // TESTE FIXO - deve aparecer no frontend
         };
       }
       
