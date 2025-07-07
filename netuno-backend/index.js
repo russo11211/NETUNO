@@ -304,8 +304,10 @@ async function estimateLpValueUSD(position) {
 }
 
 // Endpoint para buscar posições LP do usuário (com detecção de fechamento)
-app.get('/lp-positions', strictLimiter, async (req, res) => {
+app.get('/lp-positions', async (req, res) => {
   const { address } = req.query;
+  console.log(`🔍 LP Positions request for address: ${address} from IP: ${req.ip}`);
+  
   if (!address) {
     return res.status(400).json({ error: 'Missing address query parameter.' });
   }
@@ -459,6 +461,7 @@ app.get('/lp-positions', strictLimiter, async (req, res) => {
     }));
     // --- Fim detecção ---
 
+    console.log(`✅ Returning ${lpPositions.length} LP positions for ${address}`);
     res.json({ lpPositions });
   } catch (err) {
     res.status(500).json({ error: err.message });
