@@ -80,7 +80,7 @@ const OceanDashboard: React.FC<DashboardProps> = ({ address }) => {
     // Multiple fetch strategies - production and local fallbacks
     const fetchWithFallback = async () => {
       const urls = [
-        `https://netuno-backend-nqk7.onrender.com/lp-positions?address=${address}`,
+        `https://netuno-backend.onrender.com/lp-positions?address=${address}`,
         `http://127.0.0.1:3001/lp-positions?address=${address}`,
         `http://localhost:3001/lp-positions?address=${address}`,
         `http://127.0.0.1:8080/lp-positions?address=${address}`,
