@@ -364,6 +364,17 @@ app.get('/lp-positions', async (req, res) => {
           decimals: 9 
         };
 
+        // Calcular valor USD usando SOL como referência
+        let estimatedValueUSD = null;
+        try {
+          const solPrice = await getTokenPrice('SOL');
+          const solAmount = parseFloat(positionData.totalYAmount) / 1e9; // SOL tem 9 decimais
+          estimatedValueUSD = solAmount * 2 * solPrice; // Multiplicar por 2 pois SOL é metade do pool
+          console.log(`💰 Estimated value for ${tokenX.symbol}/${tokenY.symbol}: ${solAmount} SOL = $${estimatedValueUSD?.toFixed(2)}`);
+        } catch (error) {
+          console.error('Error calculating USD value:', error);
+        }
+
         return {
           mint,
           protocol,
@@ -398,7 +409,7 @@ app.get('/lp-positions', async (req, res) => {
               mint: positionData.mintY
             }
           },
-          valueUSD: positionData.valueUSD || null
+          valueUSD: estimatedValueUSD
         };
       }
       
