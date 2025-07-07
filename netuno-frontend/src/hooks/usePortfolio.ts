@@ -54,13 +54,14 @@ export const portfolioKeys = {
 
 // 🌐 API URLs with fallback strategy
 const API_URLS = [
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://netuno-backend.onrender.com',
   'https://netuno-backend.onrender.com',
+  'http://127.0.0.1:4000',
+  'http://localhost:4000',
   'http://127.0.0.1:3001',
   'http://localhost:3001',
   'http://127.0.0.1:8080',
   'http://localhost:8080',
-  'http://127.0.0.1:4000',
-  'http://localhost:4000',
 ] as const;
 
 // 🔄 Optimized fetch function with Redis cache + fallback strategy + Performance monitoring
@@ -68,28 +69,34 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
   const endTotalTimer = PerformanceMonitor.startTimer('portfolio-fetch-total');
   
   try {
-    // 🎯 STEP 1: Check Redis cache first
+    // 🎯 STEP 1: Check Redis cache first (with timeout)
     try {
-      const cachedData = await withCachePerformance(
-        'redis-portfolio',
-        `portfolio:${address}`,
-        async () => {
-          const cached = await portfolioCache.getPortfolio(address);
-          if (cached) {
-            console.log(`🎯 Redis Cache HIT for ${address}`);
-            PerformanceMonitor.recordMetric('cache-hit', 1);
-            return cached as PortfolioData;
+      const cachedData = await Promise.race([
+        withCachePerformance(
+          'redis-portfolio',
+          `portfolio:${address}`,
+          async () => {
+            const cached = await portfolioCache.getPortfolio(address);
+            if (cached) {
+              console.log(`🎯 Redis Cache HIT for ${address}`);
+              PerformanceMonitor.recordMetric('cache-hit', 1);
+              return cached as PortfolioData;
+            }
+            PerformanceMonitor.recordMetric('cache-miss', 1);
+            return null;
           }
-          PerformanceMonitor.recordMetric('cache-miss', 1);
-          return null;
-        }
-      );
+        ),
+        // Timeout after 2 seconds for cache
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Cache timeout')), 2000)
+        )
+      ]);
       
       if (cachedData) {
-        return cachedData;
+        return cachedData as PortfolioData;
       }
     } catch (error) {
-      console.warn('Redis cache read failed, falling back to API:', error);
+      console.warn('Redis cache failed/timeout, proceeding to API:', error);
       PerformanceMonitor.recordMetric('cache-error', 1);
     }
 
@@ -97,9 +104,13 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
     let lastError: Error | null = null;
     let freshData: PortfolioData | null = null;
 
+    console.log(`🎯 DEBUGGING: Fetching portfolio for address: "${address}"`);
+    console.log(`🎯 Address length: ${address?.length}, type: ${typeof address}`);
+    
     for (const baseUrl of API_URLS) {
       try {
-        console.log(`🔍 API Trying: ${baseUrl}/lp-positions?address=${address}`);
+        const fullUrl = `${baseUrl}/lp-positions?address=${address}`;
+        console.log(`🔍 API Trying: ${fullUrl}`);
         
         freshData = await withApiPerformance(
           `lp-positions-${baseUrl.split('//')[1]?.split('.')[0] || 'api'}`,
@@ -116,11 +127,16 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
               signal: AbortSignal.timeout(5000), // Reduced to 5s for even faster fallback
             });
 
+            console.log(`🔍 Response status: ${response.status} ${response.statusText}`);
+            
             if (!response.ok) {
-              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+              const errorText = await response.text();
+              console.error(`❌ API Error Response: ${errorText}`);
+              throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
             }
 
             const data = await response.json();
+            console.log(`✅ API Response data:`, data);
             
             // ✅ Validate response structure
             if (!data.lpPositions || !Array.isArray(data.lpPositions)) {
@@ -143,9 +159,21 @@ const fetchPortfolioData = async (address: string): Promise<PortfolioData> => {
       }
     }
 
-    // If all APIs failed, throw the last error
+    // If all APIs failed, return empty data instead of throwing
     if (!freshData) {
-      throw lastError || new Error('All API endpoints failed');
+      console.warn('All API endpoints failed, returning empty portfolio');
+      PerformanceMonitor.recordMetric('api-total-failure', 1);
+      
+      // Return empty portfolio to avoid breaking the UI
+      return {
+        lpPositions: [],
+        summary: {
+          totalPositions: 0,
+          protocols: [],
+          totalValueUSD: 0,
+          positionsWithPrices: 0,
+        }
+      };
     }
 
     // 💾 STEP 3: Store in Redis cache for next time (async, don't wait)

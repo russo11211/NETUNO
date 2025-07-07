@@ -4,8 +4,8 @@ import { Redis } from '@upstash/redis';
 
 // 🔥 Upstash Redis Configuration (Free tier)
 const redis = new Redis({
-  url: process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_URL || 'https://caring-panther-29803.upstash.io',
-  token: process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_TOKEN || 'AYCoACQgOWZiZTFmNzEtZWU4MS00NDk1LThkNDItOGM0MDcxNDI3ZDNiMWE4ZWE3MWY5N2E0NGEzYzkwNjU3NWM0YjVkZA==',
+  url: process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_URL || 'https://noted-warthog-17085.upstash.io',
+  token: process.env.NEXT_PUBLIC_UPSTASH_REDIS_REST_TOKEN || 'AUK9AAIjcDE1YmQwZmE2YmY2NjA0NGE0YjYyMTIyNjJjNmFkZWMwY3AxMA',
 });
 
 // 🎯 Cache Keys

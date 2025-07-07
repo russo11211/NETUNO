@@ -3,12 +3,15 @@
 import { io, Socket } from 'socket.io-client';
 import { portfolioCache } from './redis-cache';
 
-// 🌐 WebSocket Configuration
+// 🌐 WebSocket Configuration  
 const WS_URLS = [
-  'wss://netuno-backend.onrender.com',
+  // Only try secure WebSocket for production (Vercel)
+  typeof window !== 'undefined' && window.location.protocol === 'https:' ? 
+    'wss://netuno-backend.onrender.com' : null,
+  // Local development fallbacks
   'ws://127.0.0.1:4000',
   'ws://localhost:4000',
-] as const;
+].filter(Boolean) as string[];
 
 interface PositionUpdate {
   address: string;
@@ -97,8 +100,11 @@ export class WebSocketManager {
     this.isConnecting = false;
     
     if (!this.socket?.connected) {
-      console.warn('🔌 All WebSocket URLs failed, will retry later');
-      this.scheduleReconnect();
+      console.warn('🔌 All WebSocket URLs failed, continuing without real-time updates');
+      // Don't retry aggressively in production
+      if (process.env.NODE_ENV === 'development') {
+        this.scheduleReconnect();
+      }
     }
   }
 
